@@ -11,9 +11,13 @@ import logging
 from datetime import datetime
 
 
+
 # Configuration
 VIDEO_SOURCE = 0  # 0 for webcam, or provide video file path
-MIN_CONTOUR_AREA = 500
+MIN_CONTOUR_AREA = 10  # Lowered for high sensitivity (detects even small movements)
+BLUR_KERNEL = (5, 5)   # Smaller blur kernel for more detail
+THRESHOLD_SENSITIVITY = 10  # Lower threshold value for finer changes
+USE_BG_SUBTRACTION = True   # Use background subtraction for maximum sensitivity
 # Always use absolute paths based on script location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RECORDINGS_DIR = os.path.join(BASE_DIR, "recordings")
@@ -40,23 +44,26 @@ def log_event(message):
     """Log an event to the log file."""
     logging.info(message)
 
+
 def detect_motion():
-    """Main motion detection loop."""
+    """Main motion detection loop with high sensitivity."""
     cap = cv2.VideoCapture(VIDEO_SOURCE)
     if not cap.isOpened():
         log_event("Failed to open video source.")
         print("Error: Unable to access video source.")
         return
 
-    ret, frame1 = cap.read()
-    if not ret:
-        log_event("Failed to grab first frame.")
-        print("Error: Unable to read first frame.")
-        cap.release()
-        return
-
-    frame1_gray = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-    frame1_gray = cv2.GaussianBlur(frame1_gray, (21, 21), 0)
+    if USE_BG_SUBTRACTION:
+        backSub = cv2.createBackgroundSubtractorMOG2(detectShadows=False)
+    else:
+        ret, frame1 = cap.read()
+        if not ret:
+            log_event("Failed to grab first frame.")
+            print("Error: Unable to read first frame.")
+            cap.release()
+            return
+        frame1_gray = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+        frame1_gray = cv2.GaussianBlur(frame1_gray, BLUR_KERNEL, 0)
 
     while True:
         ret, frame2 = cap.read()
@@ -65,10 +72,14 @@ def detect_motion():
             break
 
         frame2_gray = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-        frame2_gray = cv2.GaussianBlur(frame2_gray, (21, 21), 0)
+        frame2_gray = cv2.GaussianBlur(frame2_gray, BLUR_KERNEL, 0)
 
-        diff = cv2.absdiff(frame1_gray, frame2_gray)
-        thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)[1]
+        if USE_BG_SUBTRACTION:
+            fgMask = backSub.apply(frame2_gray)
+            thresh = cv2.threshold(fgMask, THRESHOLD_SENSITIVITY, 255, cv2.THRESH_BINARY)[1]
+        else:
+            diff = cv2.absdiff(frame1_gray, frame2_gray)
+            thresh = cv2.threshold(diff, THRESHOLD_SENSITIVITY, 255, cv2.THRESH_BINARY)[1]
         thresh = cv2.dilate(thresh, None, iterations=2)
 
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -88,7 +99,8 @@ def detect_motion():
         cv2.imshow("Motion Detector", frame2)
         cv2.imshow("Threshold", thresh)
 
-        frame1_gray = frame2_gray
+        if not USE_BG_SUBTRACTION:
+            frame1_gray = frame2_gray
 
         if cv2.waitKey(30) & 0xFF == 27:  # Press 'Esc' to exit
             log_event("User exited application.")

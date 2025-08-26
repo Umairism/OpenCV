@@ -10,11 +10,14 @@ import os
 import logging
 from datetime import datetime
 
+
 # Configuration
 VIDEO_SOURCE = 0  # 0 for webcam, or provide video file path
 MIN_CONTOUR_AREA = 500
-RECORDINGS_DIR = "recordings"
-LOGS_DIR = "logs"
+# Always use absolute paths based on script location
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RECORDINGS_DIR = os.path.join(BASE_DIR, "recordings")
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
 LOG_FILE = os.path.join(LOGS_DIR, "events.log")
 
 # Setup logging

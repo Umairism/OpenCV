@@ -90,7 +90,7 @@ def detect_motion():
             (x, y, w, h) = cv2.boundingRect(contour)
             cv2.rectangle(frame2, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(frame2, "Motion Detected", (10, 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             if not motion_detected:
                 save_motion_event(frame2)
                 log_event(f"Motion detected at position: x={x}, y={y}, w={w}, h={h}")

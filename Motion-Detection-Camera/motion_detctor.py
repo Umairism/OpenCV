@@ -24,6 +24,7 @@ RECORDINGS_DIR = os.path.join(BASE_DIR, "recordings")
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
 LOG_FILE = os.path.join(LOGS_DIR, "events.log")
 
+
 # Setup logging
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -48,6 +49,9 @@ def log_event(message):
 def detect_motion():
     """Main motion detection loop with high sensitivity."""
     cap = cv2.VideoCapture(VIDEO_SOURCE)
+    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
     if not cap.isOpened():
         log_event("Failed to open video source.")
         print("Error: Unable to access video source.")
